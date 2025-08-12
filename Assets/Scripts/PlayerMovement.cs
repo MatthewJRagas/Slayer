@@ -10,7 +10,9 @@ public class PlayerMovement : MonoBehaviour
 {
 
     [Header("Movement")]
-    public float moveSpeed;
+    private float moveSpeed;
+    public float walkSpeed;
+    public float sprintSpeed;
 
     public float groundDrag;
 
@@ -20,7 +22,8 @@ public class PlayerMovement : MonoBehaviour
     bool readyToJump;
 
     [Header("Keybinds")]
-    KeyCode jumpKey = KeyCode.Space;
+    public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode sprintKey = KeyCode.LeftShift;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -36,6 +39,15 @@ public class PlayerMovement : MonoBehaviour
 
     Rigidbody rb;
 
+    public MovementState state;
+
+    public enum MovementState
+    {
+        walking, 
+        sprinting, 
+        air
+    }
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -50,17 +62,39 @@ public class PlayerMovement : MonoBehaviour
 
         MyInput();
         SpeedControl();
+        StateHandler();
 
         //handle drag
         if(grounded)
-        {
-            Debug.Log("Grounded");
+        {           
             rb.drag = groundDrag;
         }
         else
         {
-            Debug.Log("Not Grounded");
             rb.drag = 0;
+        }
+    }
+
+    private void StateHandler()
+    {
+        // mode - sprinting
+        if(grounded && Input.GetKey(sprintKey))
+        {
+            state = MovementState.sprinting;
+            moveSpeed = sprintSpeed;
+        }
+
+        //Mode - walking
+        else if(grounded)
+        {
+            state = MovementState.walking;
+            moveSpeed = walkSpeed;
+        }
+
+        //Mode - Air
+        else
+        {
+            state = MovementState.air;
         }
     }
 
@@ -91,15 +125,15 @@ public class PlayerMovement : MonoBehaviour
         moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
         Console.WriteLine("hello world!");
         //on ground
-        if(grounded)
+        if (grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
         }
-        else if(!grounded)
+        else if (!grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
         }
-        
+
     }
 
     private void SpeedControl()
@@ -115,8 +149,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Jump()
-    {
-        Debug.Log("Jumped!");
+    {        
 
         //reset y velocity
         rb. velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z) ;
