@@ -30,6 +30,11 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask whatIsGround;
     bool grounded;
 
+    [Header("Slope Handing")]
+    public float maxSlopeAngle;
+    private RaycastHit slopeHit;//stores the information of the object hit
+    private bool exitingSlope;
+
     public Transform orientation;
 
     float horizontalInput;
@@ -123,33 +128,62 @@ public class PlayerMovement : MonoBehaviour
     {
         //calculate movement direciton
         moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
-        Console.WriteLine("hello world!");
+        
+        //on slope
+        if(OnSlope())
+        {
+            rb.AddForce(GetSlopeMoveDirection() * moveSpeed * 20f, ForceMode.Force);
+
+            if(rb.velocity.y > 0)
+            {
+                rb.AddForce(Vector3.down * 80f, ForceMode.Force);
+            }
+        }
+
         //on ground
         if (grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
         }
+        //in air
         else if (!grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
         }
 
+        //turn gravity off while on slope
+        rb.useGravity = !OnSlope();
+
     }
 
     private void SpeedControl()
     {
-        Vector3 flatVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-
-        //limit velocity if needed
-        if (flatVelocity.magnitude > moveSpeed)
+        //limit speed on slope
+        if(OnSlope())
         {
-            Vector3 limitedVelocity = flatVelocity.normalized * moveSpeed;
-            rb.velocity = new Vector3(limitedVelocity.x, rb.velocity.y, limitedVelocity.z);
+            if(rb.velocity.magnitude > moveSpeed)
+            {
+                rb.velocity = rb.velocity.normalized * moveSpeed;
+            }
         }
+
+        //limiting speed on ground or in air
+        else
+        {
+            Vector3 flatVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+            //limit velocity if needed
+            if (flatVelocity.magnitude > moveSpeed)
+            {
+                Vector3 limitedVelocity = flatVelocity.normalized * moveSpeed;
+                rb.velocity = new Vector3(limitedVelocity.x, rb.velocity.y, limitedVelocity.z);
+            }
+        }           
     }
 
     private void Jump()
     {        
+        exitingSlope = true;
 
         //reset y velocity
         rb. velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z) ;
@@ -158,8 +192,26 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Resetjump()
-    {
+    {        
         readyToJump = true;
+
+        exitingSlope = false;
+    }
+
+    private bool OnSlope()
+    {
+        if(Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 0.3f))
+        {
+            //calculate how steep the slope the player is standing on is
+            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
+            return angle < maxSlopeAngle && angle != 0;
+        }
+        return false;
+    }
+
+    private Vector3 GetSlopeMoveDirection()
+    {
+        return Vector3.ProjectOnPlane(moveDirection, slopeHit.normal).normalized;
     }
 
 }
