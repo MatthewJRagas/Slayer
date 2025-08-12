@@ -24,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
     public KeyCode sprintKey = KeyCode.LeftShift;
+    public KeyCode resetKey = KeyCode.F;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -122,6 +123,13 @@ public class PlayerMovement : MonoBehaviour
 
             Invoke(nameof(Resetjump), jumpCooldown);
         }
+
+        if(Input.GetKey(resetKey))
+        {
+            //transform.position.x = 0;
+            //transform.position.y = 0;
+        }
+
     }
 
     private void MovePlayer()
@@ -159,7 +167,7 @@ public class PlayerMovement : MonoBehaviour
     private void SpeedControl()
     {
         //limit speed on slope
-        if(OnSlope())
+        if(OnSlope() && !exitingSlope)
         {
             if(rb.velocity.magnitude > moveSpeed)
             {
